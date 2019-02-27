@@ -1,35 +1,31 @@
-import {
-  DeliveryAdapter,
-  DeliveryDirector,
-} from 'meteor/unchained:core-delivery';
+import { DeliveryAdapter, DeliveryDirector } from 'meteor/unchained:core-delivery';
 
-import {
-  MessagingDirector,
-  MessagingType,
-} from 'meteor/unchained:core-messaging';
+import { MessagingDirector, MessagingType } from 'meteor/unchained:core-messaging';
 
 class SendMail extends DeliveryAdapter {
-  static key = 'shop.unchained.send-mail'
+  static key = 'shop.unchained.send-mail';
 
-  static label = 'Send E-Mail to central Address'
+  static label = 'Send E-Mail to central Address';
 
-  static version = '1.0'
+  static version = '1.0';
 
   static initialConfiguration = [
     { key: 'from', value: '' },
     { key: 'to', value: '' },
     { key: 'cc', value: '' },
-  ]
+  ];
 
   static typeSupported(type) {
-    return (type === 'SHIPPING');
+    return type === 'SHIPPING';
   }
 
-  isActive() { // eslint-disable-line
+  isActive() {
+    // eslint-disable-line
     return true;
   }
 
-  async estimatedDeliveryThroughput() { // eslint-disable-line
+  async estimatedDeliveryThroughput() {
+    // eslint-disable-line
     return 0;
   }
 
@@ -54,7 +50,8 @@ class SendMail extends DeliveryAdapter {
     }, null);
   }
 
-  configurationError() { // eslint-disable-line
+  configurationError() {
+    // eslint-disable-line
     return null;
   }
 
@@ -88,7 +85,7 @@ class SendMail extends DeliveryAdapter {
         quantity: position.quantity,
       };
     });
-
+    console.log(order.pricing(), order.pricing().total());
     return director.sendMessage({
       template: 'shop.unchained.send-mail',
       attachments,
@@ -98,7 +95,10 @@ class SendMail extends DeliveryAdapter {
         to: this.getToAddress(),
         cc: this.getCCAddress(),
         ...((delivery && delivery.address) || {}),
+        contact: order.contact || {},
         items,
+        total: order.pricing().total(),
+        deliveryContext: this.context,
       },
     });
   }

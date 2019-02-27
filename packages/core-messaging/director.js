@@ -1,9 +1,7 @@
 import { log } from 'meteor/unchained:core-logger';
 import { defaultEmailResolver, defaultSMSResolver } from './template-resolvers';
 
-const {
-  LANG,
-} = process.env;
+const { LANG } = process.env;
 
 const MessagingType = {
   EMAIL: 'EMAIL',
@@ -11,11 +9,11 @@ const MessagingType = {
 };
 
 class MessagingAdapter {
-  static key = ''
+  static key = '';
 
-  static label = ''
+  static label = '';
 
-  static version = ''
+  static version = '';
 
   static isActivatedFor() {
     return false;
@@ -26,11 +24,13 @@ class MessagingAdapter {
     this.resolver = resolver;
   }
 
-  sendMessage() { // eslint-disable-line
+  sendMessage() {
+    // eslint-disable-line
     return null;
   }
 
-  log(message, { level = 'verbose', ...options } = {}) { // eslint-disable-line
+  log(message, { level = 'verbose', ...options } = {}) {
+    // eslint-disable-line
     return log(message, { level, ...options });
   }
 }
@@ -43,13 +43,17 @@ class MessagingDirector {
     };
   }
 
+  /* FIXME: most sendMessage calls use a `meta` property, that is rather confusing, because
+  you already have order.meta, etc. Maybe just `data` ?
+  */
   sendMessage(options) {
     return this.execute('sendMessage', options);
   }
 
   execute(name, options) {
-    return this.constructor.sortedAdapters()
-      .filter(((AdapterClass) => {
+    return this.constructor
+      .sortedAdapters()
+      .filter((AdapterClass) => {
         const activated = AdapterClass.isActivatedFor(this.context);
         if (!activated) {
           log(`${this.constructor.name} -> ${AdapterClass.key} (${AdapterClass.version}) skipped`, {
@@ -57,7 +61,7 @@ class MessagingDirector {
           });
         }
         return activated;
-      }))
+      })
       .map((AdapterClass) => {
         const concreteAdapter = new AdapterClass({
           context: this.context,
@@ -92,8 +96,4 @@ class MessagingDirector {
 MessagingDirector.setTemplateResolver(MessagingType.EMAIL, defaultEmailResolver);
 MessagingDirector.setTemplateResolver(MessagingType.SMS, defaultSMSResolver);
 
-export {
-  MessagingType,
-  MessagingDirector,
-  MessagingAdapter,
-};
+export { MessagingType, MessagingDirector, MessagingAdapter };
