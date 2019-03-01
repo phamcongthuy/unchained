@@ -85,7 +85,19 @@ class SendMail extends DeliveryAdapter {
         quantity: position.quantity,
       };
     });
-    console.log(order.pricing(), order.pricing().total());
+
+    console.log({
+      mailPrefix: `${order.orderNumber}_`,
+      from: this.getFromAddress(),
+      to: this.getToAddress(),
+      cc: this.getCCAddress(),
+      ...((delivery && delivery.address) || {}),
+      contact: order.contact || {},
+      items,
+      total: order.pricing().total(),
+      deliveryContext: this.context,
+    });
+
     return director.sendMessage({
       template: 'shop.unchained.send-mail',
       attachments,
@@ -97,7 +109,7 @@ class SendMail extends DeliveryAdapter {
         ...((delivery && delivery.address) || {}),
         contact: order.contact || {},
         items,
-        total: order.pricing().total(),
+        total: order.pricing().total().amount / 100,
         deliveryContext: this.context,
       },
     });
