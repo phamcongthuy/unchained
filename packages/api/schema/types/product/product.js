@@ -132,11 +132,6 @@ type ProductVariationAssignment {
   product: Product
 }
 
-input ProductAssignmentVectorInput {
-  key: String!
-  value: String!
-}
-
 type ProductReview {
   _id: ID!
   created: Date
@@ -163,6 +158,11 @@ enum ProductReviewVoteType {
   UPVOTE
   DOWNVOTE
   REPORT
+}
+
+type ProductConfigurationParameter {
+  key: String!
+  value: String!
 }
 
 `];
