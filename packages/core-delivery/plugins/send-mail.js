@@ -86,18 +86,6 @@ class SendMail extends DeliveryAdapter {
       };
     });
 
-    console.log({
-      mailPrefix: `${order.orderNumber}_`,
-      from: this.getFromAddress(),
-      to: this.getToAddress(),
-      cc: this.getCCAddress(),
-      ...((delivery && delivery.address) || {}),
-      contact: order.contact || {},
-      items,
-      total: order.pricing().total(),
-      deliveryContext: this.context,
-    });
-
     return director.sendMessage({
       template: 'shop.unchained.send-mail',
       attachments,
