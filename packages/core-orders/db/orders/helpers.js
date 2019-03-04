@@ -300,7 +300,6 @@ Orders.helpers({
           const { quantity } = item;
           return { quantity, product, total };
         }),
-        
       },
     });
     return this;

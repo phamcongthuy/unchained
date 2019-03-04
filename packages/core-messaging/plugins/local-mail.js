@@ -5,14 +5,17 @@ import {
   MessagingAdapter,
 } from 'meteor/unchained:core-messaging';
 
-const { MAIL_URL, NODE_ENV } = process.env;
+const {
+  MAIL_URL,
+  NODE_ENV,
+} = process.env;
 
 class LocalMail extends MessagingAdapter {
-  static key = 'shop.unchained.local-mail';
+  static key = 'shop.unchained.local-mail'
 
-  static label = 'Local Mailer';
+  static label = 'Local Mailer'
 
-  static version = '1.0';
+  static version = '1.0'
 
   static isActivatedFor({ type }) {
     if (!MAIL_URL && NODE_ENV === 'production') return false;
@@ -21,10 +24,7 @@ class LocalMail extends MessagingAdapter {
   }
 
   sendMessage({
-    template,
-    subject,
-    attachments,
-    meta: {
+    template, subject, attachments, meta: {
       to, cc, from, mailPrefix = '', ...meta
     },
   }) {
