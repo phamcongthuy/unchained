@@ -30,7 +30,8 @@ class SendMail extends DeliveryAdapter {
     return true;
   }
 
-  async estimatedDeliveryThroughput(warehousingThroughputTime) { // eslint-disable-line
+  async estimatedDeliveryThroughput(warehousingThroughputTime) {
+    // eslint-disable-line
     return 0;
   }
 
@@ -100,10 +101,9 @@ class SendMail extends DeliveryAdapter {
         to: this.getToAddress(),
         cc: this.getCCAddress(),
         ...((transactionContext && transactionContext.address) || {}),
-        items
+        items,
         contact: order.contact || {},
         total: order.pricing().total().amount / 100,
-        deliveryContext: this.context,
       }
     });
   }
