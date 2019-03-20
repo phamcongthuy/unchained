@@ -103,7 +103,7 @@ class SendMail extends DeliveryAdapter {
         ...((transactionContext && transactionContext.address) || {}),
         items,
         contact: order.contact || {},
-        total: order.pricing().total().amount / 100,
+        total: order.pricing().total().amount / 100
       }
     });
   }
