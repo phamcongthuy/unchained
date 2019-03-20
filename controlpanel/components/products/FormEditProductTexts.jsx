@@ -44,7 +44,11 @@ const FormEditProductTexts = ({
       <Segment attached="bottom">
         {languages.map((language, key) => (
           <div key={`form-${language.isoCode}`}>
-            <AutoField name={`texts.${key}.locale`} disabled={isEditingDisabled} hidden />
+            <AutoField
+              name={`texts.${key}.locale`}
+              disabled={isEditingDisabled}
+              hidden
+            />
             <AutoField
               name={`texts.${key}.slug`}
               disabled={isEditingDisabled}
@@ -173,7 +177,7 @@ export default compose(
       ...rest,
       languages,
       baseLanguage,
-      isEditingDisabled: !product || product.status === 'DELETED',
+      isEditingDisabled: !product || product.status === 'DELETED'
     };
   }),
   withState('selectedLocale', 'setSelectedLocale', null),
@@ -208,9 +212,9 @@ export default compose(
     `,
     {
       options: {
-        refetchQueries: ['productTexts', 'productInfos'],
-      },
-    },
+        refetchQueries: ['productTexts', 'productInfos']
+      }
+    }
   ),
   withFormSchema({
     texts: {
@@ -239,7 +243,7 @@ export default compose(
     'texts.$.pageTitle': {
       type: String,
       optional: true,
-      label: 'Pagetitle',
+      label: 'Pagetitle'
     },
     'texts.$.vendor': {
       type: String,
@@ -255,12 +259,12 @@ export default compose(
     'texts.$.faq': {
       type: String,
       optional: true,
-      label: 'Product FAQ',
+      label: 'Product FAQ'
     },
     'texts.$.teasertext': {
       type: String,
       optional: true,
-      label: 'Teaser test',
+      label: 'Teaser test'
     },
     'texts.$.slug': {
       type: String,
@@ -274,43 +278,46 @@ export default compose(
     },
     'texts.$.labels.$': {
       type: String,
-      optional: true,
+      optional: true
     },
     'texts.$.meta.description': {
       type: String,
       optional: true,
-      label: 'Meta description for seo',
+      label: 'Meta description for seo'
     },
     'texts.$.meta': {
       type: Object,
-      optional: true,
+      optional: true
     },
     'texts.$.meta.keywords': {
       type: String,
       optional: true,
-      label: 'Meta keywords for seo',
+      label: 'Meta keywords for seo'
     },
     'texts.$.social': {
       type: Object,
-      optional: true,
+      optional: true
     },
     'texts.$.social.title': {
       type: String,
       optional: true,
-      label: 'social title',
+      label: 'social title'
     },
     'texts.$.social.description': {
       type: String,
       optional: true,
-      label: 'social description',
-    },
+      label: 'social description'
+    }
   }),
   withFormModel(({ data: { translatedProductTexts = [] }, languages = [] }) => {
-    const texts = languages.map((language) => {
+    const texts = languages.map(language => {
       const foundTranslations = translatedProductTexts.filter(
-        translatedText => translatedText.locale === language.isoCode,
+        translatedText => translatedText.locale === language.isoCode
       );
-      const localizedTextForLocale = foundTranslations.length > 0 ? { ...foundTranslations[0] } : { locale: language.isoCode };
+      const localizedTextForLocale =
+        foundTranslations.length > 0
+          ? { ...foundTranslations[0] }
+          : { locale: language.isoCode };
       localizedTextForLocale.labels = localizedTextForLocale.labels || [];
       return localizedTextForLocale;
     });
