@@ -4,8 +4,8 @@ import { WarehousingProviders } from './collections';
 import { WarehousingProviderType } from './schema';
 
 Factory.define('warehousingProvider', WarehousingProviders, {
-  adapterKey: () => 'shop.unchained.warehousing.manual-stock',
+  adapterKey: () => 'shop.unchained.warehousing.google-sheets',
   type: () => WarehousingProviderType.PHYSICAL,
   configuration: () => [],
-  ...fakeTimestampFields,
+  ...fakeTimestampFields
 });

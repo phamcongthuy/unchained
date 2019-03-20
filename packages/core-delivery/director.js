@@ -4,15 +4,15 @@ export const DeliveryError = {
   ADAPTER_NOT_FOUND: 'ADAPTER_NOT_FOUND',
   NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
   INCOMPLETE_CONFIGURATION: 'INCOMPLETE_CONFIGURATION',
-  WRONG_CREDENTIALS: 'WRONG_CREDENTIALS',
+  WRONG_CREDENTIALS: 'WRONG_CREDENTIALS'
 };
 
 export class DeliveryAdapter {
-  static key = ''
+  static key = '';
 
-  static label = ''
+  static label = '';
 
-  static version = ''
+  static version = '';
 
   static typeSupported(type) { // eslint-disable-line
     return false;
@@ -31,11 +31,11 @@ export class DeliveryAdapter {
     return false;
   }
 
-  async estimatedDeliveryThroughput() { // eslint-disable-line
+  async estimatedDeliveryThroughput(warehousingThroughputTime) { // eslint-disable-line
     return 0;
   }
 
-  async send() {  // eslint-disable-line
+  async send(transactionContext) {  // eslint-disable-line
     // if you return true, the status will be changed to DELIVERED
 
     // if you return false, the order delivery status stays the
@@ -43,6 +43,13 @@ export class DeliveryAdapter {
 
     // if you throw an error, you cancel the whole checkout process
     return false;
+  }
+
+  isAutoReleaseAllowed() { // eslint-disable-line
+    // if you return false here,
+    // the order will need manual confirmation before
+    // unchained will try to invoke send()
+    return true;
   }
 
   log(message, { level = 'verbose', ...options } = {}) { // eslint-disable-line
@@ -62,7 +69,9 @@ export class DeliveryDirector {
   interface(context) {
     const Adapter = this.interfaceClass();
     if (!Adapter) {
-      throw new Error(`Delivery Plugin ${this.provider.adapterKey} not available`);
+      throw new Error(
+        `Delivery Plugin ${this.provider.adapterKey} not available`
+      );
     }
     return new Adapter(this.provider.configuration, context);
   }
@@ -78,26 +87,36 @@ export class DeliveryDirector {
     }
   }
 
-  async estimatedDeliveryThroughput(context) {
+  async estimatedDeliveryThroughput({ warehousingThroughputTime, ...context }) {
     try {
       const adapter = this.interface(context);
-      return adapter.estimatedDeliveryThroughput();
+      return adapter.estimatedDeliveryThroughput(warehousingThroughputTime);
     } catch (error) {
       console.warn(error); // eslint-disable-line
       return null;
     }
   }
 
-  async send(context) {
+  async send({ transactionContext, ...context }) {
     const adapter = this.interface(context);
-    const result = adapter.send();
-    return result;
+    const sendResult = await adapter.send(transactionContext);
+    return sendResult;
   }
 
   isActive(context) {
     try {
       const adapter = this.interface(context);
       return adapter.isActive();
+    } catch (error) {
+      console.warn(error); // eslint-disable-line
+      return false;
+    }
+  }
+
+  isAutoReleaseAllowed(context) {
+    try {
+      const adapter = this.interface(context);
+      return adapter.isAutoReleaseAllowed();
     } catch (error) {
       console.warn(error); // eslint-disable-line
       return false;

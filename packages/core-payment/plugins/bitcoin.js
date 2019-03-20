@@ -1,18 +1,18 @@
 import {
   PaymentDirector,
   PaymentAdapter,
-  PaymentError,
+  PaymentError
 } from 'meteor/unchained:core-payment';
 
 class Bitcoin extends PaymentAdapter {
-  static key = 'mesh.crypto.bitcoin'
+  static key = 'mesh.crypto.bitcoin';
 
-  static label = 'Bitcoin'
+  static label = 'Bitcoin';
 
-  static version = '1.0'
+  static version = '1.0';
 
   static typeSupported(type) {
-    return (type === 'CRYPTO');
+    return type === 'CRYPTO';
   }
 
   configurationError() {
@@ -44,7 +44,7 @@ class Bitcoin extends PaymentAdapter {
     throw new Error('Could not retrieve a public key');
   }
 
-  async charge() { // eslint-disable-line
+  async charge(transactionContext) { // eslint-disable-line
     // throw new Error('Could not retrieve a public key');
     return true;
   }

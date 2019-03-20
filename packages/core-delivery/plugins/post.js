@@ -1,17 +1,16 @@
 import {
   DeliveryAdapter,
-  DeliveryDirector,
+  DeliveryDirector
 } from 'meteor/unchained:core-delivery';
 
 class Post extends DeliveryAdapter {
-  static key = 'shop.unchained.post'
+  static key = 'shop.unchained.post';
 
-  static label = 'Post (Manual)'
+  static label = 'Post (Manual)';
 
-  static version = '1.0'
+  static version = '1.0';
 
-  static initialConfiguration = [
-  ]
+  static initialConfiguration = [];
   isActive() { // eslint-disable-line
     return false;
   }
@@ -22,7 +21,7 @@ class Post extends DeliveryAdapter {
     return null;
   }
 
-  async estimatedDeliveryThroughput() { // eslint-disable-line
+  async estimatedDeliveryThroughput(warehousingThroughputTime) { // eslint-disable-line
     return 0;
   }
 }

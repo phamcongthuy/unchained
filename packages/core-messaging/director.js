@@ -5,7 +5,7 @@ const { LANG } = process.env;
 
 const MessagingType = {
   EMAIL: 'EMAIL',
-  SMS: 'SMS',
+  SMS: 'SMS'
 };
 
 class MessagingAdapter {
@@ -39,7 +39,7 @@ class MessagingDirector {
   constructor(context) {
     this.context = {
       locale: LANG,
-      ...context,
+      ...context
     };
   }
 
@@ -53,21 +53,30 @@ class MessagingDirector {
   execute(name, options) {
     return this.constructor
       .sortedAdapters()
-      .filter((AdapterClass) => {
+      .filter(AdapterClass => {
         const activated = AdapterClass.isActivatedFor(this.context);
         if (!activated) {
-          log(`${this.constructor.name} -> ${AdapterClass.key} (${AdapterClass.version}) skipped`, {
-            level: 'warn',
-          });
+          log(
+            `${this.constructor.name} -> ${AdapterClass.key} (${
+              AdapterClass.version
+            }) skipped`,
+            {
+              level: 'warn'
+            }
+          );
         }
         return activated;
       })
-      .map((AdapterClass) => {
+      .map(AdapterClass => {
         const concreteAdapter = new AdapterClass({
           context: this.context,
-          resolver: this.constructor.resolvers.get(this.context.type),
+          resolver: this.constructor.resolvers.get(this.context.type)
         });
-        log(`${this.constructor.name} -> via ${AdapterClass.key} -> Execute '${name}'`);
+        log(
+          `${this.constructor.name} -> via ${
+            AdapterClass.key
+          } -> Execute '${name}'`
+        );
         return concreteAdapter[name](options);
       }, []);
   }
@@ -83,7 +92,11 @@ class MessagingDirector {
   }
 
   static registerAdapter(adapter) {
-    log(`${this.name} -> Registered ${adapter.key} ${adapter.version} (${adapter.label})`);
+    log(
+      `${this.name} -> Registered ${adapter.key} ${adapter.version} (${
+        adapter.label
+      })`
+    );
     this.adapters.set(adapter.key, adapter);
   }
 
@@ -93,7 +106,10 @@ class MessagingDirector {
   }
 }
 
-MessagingDirector.setTemplateResolver(MessagingType.EMAIL, defaultEmailResolver);
+MessagingDirector.setTemplateResolver(
+  MessagingType.EMAIL,
+  defaultEmailResolver
+);
 MessagingDirector.setTemplateResolver(MessagingType.SMS, defaultSMSResolver);
 
 export { MessagingType, MessagingDirector, MessagingAdapter };

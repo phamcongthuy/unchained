@@ -3,12 +3,11 @@ import { Users } from 'meteor/unchained:core-users';
 import { Orders, OrderPositions } from 'meteor/unchained:core-orders';
 import {
   UserNotFoundError,
-  OrderNotFoundError, OrderWrongStatusError,
+  OrderNotFoundError,
+  OrderWrongStatusError
 } from '../../errors';
 
-export default function (root, {
-  orderId,
-}, { userId, countryContext }) {
+export default function(root, { orderId }, { userId, countryContext }) {
   log('mutation emptyCart', { userId, orderId });
   if (orderId) {
     const order = Orders.findOne({ _id: orderId });
@@ -22,6 +21,7 @@ export default function (root, {
   const user = Users.findOne({ _id: userId });
   if (!user) throw new UserNotFoundError({ userId });
   const cart = user.cart({ countryContext });
+  if (!cart) return null;
   OrderPositions.removePositions({ orderId: cart._id });
   return cart;
 }

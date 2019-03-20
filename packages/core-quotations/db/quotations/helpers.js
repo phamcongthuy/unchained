@@ -1,121 +1,114 @@
 import Hashids from 'hashids';
 import 'meteor/dburles:collection-helpers';
 import { Promise } from 'meteor/promise';
-import { getFallbackLocale } from 'meteor/unchained:core';
 import { objectInvert } from 'meteor/unchained:utils';
 import { Users } from 'meteor/unchained:core-users';
 import { Products } from 'meteor/unchained:core-products';
 import { Countries } from 'meteor/unchained:core-countries';
 import { Logs, log } from 'meteor/unchained:core-logger';
-import { MessagingDirector, MessagingType } from 'meteor/unchained:core-messaging';
+import {
+  MessagingDirector,
+  MessagingType
+} from 'meteor/unchained:core-messaging';
 import { Quotations } from './collections';
 import { QuotationDocuments } from '../quotation-documents/collections';
 import { QuotationStatus } from './schema';
 import { QuotationDirector } from '../../director';
 
-const {
-  EMAIL_FROM,
-  UI_ENDPOINT,
-} = process.env;
+const { EMAIL_FROM, UI_ENDPOINT } = process.env;
 
 Logs.helpers({
   quotation() {
-    return this.meta && Quotations.findOne({
-      _id: this.meta.quotationId,
-    });
-  },
+    return (
+      this.meta &&
+      Quotations.findOne({
+        _id: this.meta.quotationId
+      })
+    );
+  }
 });
 
 Users.helpers({
   quotations() {
-    return Quotations.find({ userId: this._id }, {
-      sort: {
-        created: -1,
-      },
-    }).fetch();
-  },
+    return Quotations.find(
+      { userId: this._id },
+      {
+        sort: {
+          created: -1
+        }
+      }
+    ).fetch();
+  }
 });
 
 Quotations.helpers({
   user() {
     return Users.findOne({
-      _id: this.userId,
+      _id: this.userId
     });
   },
   product() {
     return Products.findOne({
-      _id: this.productId,
+      _id: this.productId
     });
   },
   normalizedStatus() {
-    return objectInvert(QuotationStatus)[this.status];
+    return objectInvert(QuotationStatus)[this.status || null];
   },
   updateContext(context) {
     return Quotations.updateContext({
       quotationId: this._id,
-      context,
+      context
     });
   },
-  verify({ quotationContext }, { localeContext }) {
+  verify({ quotationContext } = {}, options) {
     if (this.status !== QuotationStatus.REQUESTED) return this;
-    const lastUserLanguage = this.user().language();
-    const language = (localeContext && localeContext.normalized)
-      || (lastUserLanguage && lastUserLanguage.isoCode);
-    return this
-      .setStatus(QuotationStatus.PROCESSING, 'verified elligibility manually')
+    return this.setStatus(
+      QuotationStatus.PROCESSING,
+      'verified elligibility manually'
+    )
       .process({ quotationContext })
-      .sendStatusToCustomer({ language });
+      .sendStatusToCustomer(options);
   },
-  propose({ quotationContext }, { localeContext }) {
+  reject({ quotationContext } = {}, options) {
+    if (this.status === QuotationStatus.FULLFILLED) return this;
+    return this.setStatus(QuotationStatus.REJECTED, 'rejected manually')
+      .process({ quotationContext })
+      .sendStatusToCustomer(options);
+  },
+  propose({ quotationContext } = {}, options) {
     if (this.status !== QuotationStatus.PROCESSING) return this;
-    const lastUserLanguage = this.user().language();
-    const language = (localeContext && localeContext.normalized)
-      || (lastUserLanguage && lastUserLanguage.isoCode);
-    return this
-      .setStatus(QuotationStatus.PROPOSED, 'proposed manually')
+    return this.setStatus(QuotationStatus.PROPOSED, 'proposed manually')
       .process({ quotationContext })
-      .sendStatusToCustomer({ language });
+      .sendStatusToCustomer(options);
   },
-  sendStatusToCustomer({ language }) {
-    const attachments = [];
-    const confirmation = this.document({ type: 'ORDER_CONFIRMATION' });
-    if (confirmation) attachments.push(confirmation);
-    if (this.payment().isBlockingOrderFullfillment()) {
-      const invoice = this.document({ type: 'INVOICE' });
-      if (invoice) attachments.push(invoice);
-    } else {
-      const receipt = this.document({ type: 'RECEIPT' });
-      if (receipt) attachments.push(receipt);
-    }
+  fullfill({ quotationContext, info } = {}, options) {
+    if (this.status !== QuotationStatus.PROPOSED) return this;
+    return this.setStatus(QuotationStatus.FULLFILLED, JSON.stringify(info))
+      .process({ quotationContext })
+      .sendStatusToCustomer(options);
+  },
+  sendStatusToCustomer(options) {
     const user = this.user();
-    const locale = (user && user.lastLogin && user.lastLogin.locale)
-      || getFallbackLocale().normalized;
+    const locale = user.locale(options).normalized;
+    const attachments = [this.document({ type: 'PROPOSAL' })];
     const director = new MessagingDirector({
       locale,
       quotation: this,
-      type: MessagingType.EMAIL,
+      type: MessagingType.EMAIL
     });
-    const format = (price) => {
-      const fixedPrice = price / 100;
-      return `${this.currency} ${fixedPrice}`;
-    };
     director.sendMessage({
-      template: 'shop.unchained.orders.confirmation',
+      template: 'shop.unchained.quotations.proposal',
       attachments,
       meta: {
         mailPrefix: `${this.quotationNumber}_`,
         from: EMAIL_FROM,
-        to: this.contact.emailAddress,
-        url: `${UI_ENDPOINT}/order?_id=${this._id}&otp=${this.quotationNumber}`,
-        summary: this.pricing().formattedSummary(format),
-        positions: this.items().map((item) => {
-          const texts = item.product().getLocalizedTexts(language);
-          const product = texts && texts.title;
-          const total = format(item.pricing().sum());
-          const { quantity } = item;
-          return { quantity, product, total };
-        }),
-      },
+        to: user.email(),
+        url: `${UI_ENDPOINT}/quotation?_id=${this._id}&otp=${
+          this.quotationNumber
+        }`,
+        quotation: this
+      }
     });
     return this;
   },
@@ -125,31 +118,37 @@ Quotations.helpers({
     }
     return this.setStatus(this.nextStatus(), 'quotation processed');
   },
+  transformItemConfiguration(itemConfiguration) {
+    const director = this.director();
+    return Promise.await(
+      director.transformItemConfiguration(itemConfiguration)
+    );
+  },
   nextStatus() {
     let { status } = this;
-    const controller = this.controller();
+    const director = this.director();
 
     if (status === QuotationStatus.REQUESTED || !status) {
-      if (!Promise.await(controller.manualRequestVerificationNeeded())) {
+      if (!Promise.await(director.isManualRequestVerificationNeeded())) {
         status = QuotationStatus.PROCESSING;
       }
     }
     if (status === QuotationStatus.PROCESSING) {
-      if (!Promise.await(controller.manualProposalNeeded())) {
+      if (!Promise.await(director.isManualProposalNeeded())) {
         status = QuotationStatus.PROPOSED;
       }
     }
     return status;
   },
   buildProposal(quotationContext) {
-    const controller = this.controller();
-    const proposal = Promise.await(controller.quote(quotationContext));
+    const director = this.director();
+    const proposal = Promise.await(director.quote(quotationContext));
     return Quotations.updateProposal({
       ...proposal,
-      quotationId: this._id,
+      quotationId: this._id
     });
   },
-  controller() {
+  director() {
     const director = new QuotationDirector(this);
     return director;
   },
@@ -157,30 +156,34 @@ Quotations.helpers({
     return Quotations.updateStatus({
       quotationId: this._id,
       status,
-      info,
+      info
     });
   },
   addDocument(objOrString, meta, options = {}) {
     if (typeof objOrString === 'string' || objOrString instanceof String) {
-      return Promise.await(QuotationDocuments.insertWithRemoteURL({
-        url: objOrString,
+      return Promise.await(
+        QuotationDocuments.insertWithRemoteURL({
+          url: objOrString,
+          ...options,
+          meta: {
+            quotationId: this._id,
+            ...meta
+          }
+        })
+      );
+    }
+    const { rawFile, userId } = objOrString;
+    return Promise.await(
+      QuotationDocuments.insertWithRemoteBuffer({
+        file: rawFile,
+        userId,
         ...options,
         meta: {
           quotationId: this._id,
-          ...meta,
-        },
-      }));
-    }
-    const { rawFile, userId } = objOrString;
-    return Promise.await(QuotationDocuments.insertWithRemoteBuffer({
-      file: rawFile,
-      userId,
-      ...options,
-      meta: {
-        quotationId: this._id,
-        ...meta,
-      },
-    }));
+          ...meta
+        }
+      })
+    );
   },
   documents(options) {
     const { type } = options || {};
@@ -188,7 +191,9 @@ Quotations.helpers({
     if (type) {
       selector['meta.type'] = type;
     }
-    return QuotationDocuments.find(selector, { sort: { 'meta.date': -1 } }).each();
+    return QuotationDocuments.find(selector, {
+      sort: { 'meta.date': -1 }
+    }).each();
   },
   document(options) {
     const { type } = options || {};
@@ -204,65 +209,86 @@ Quotations.helpers({
       skip: offset,
       limit,
       sort: {
-        created: -1,
-      },
+        created: -1
+      }
     }).fetch();
     return logs;
   },
+  isProposalValid() {
+    return this.status === QuotationStatus.PROPOSED && !this.isExpired();
+  },
+  isExpired(referenceDate) {
+    const now = new Date() || referenceDate;
+    const expiryDate = new Date(this.expires);
+    const isExpired = now.getTime() > expiryDate.getTime();
+    return isExpired;
+  }
 });
 
-Quotations.requestQuotation = ({
-  productId, userId, currencyCode, ...rest
-}) => {
+Quotations.requestQuotation = (
+  { productId, userId, currencyCode, configuration },
+  options
+) => {
   log('Create Quotation', { userId });
   const quotationId = Quotations.insert({
-    ...rest,
     created: new Date(),
     status: QuotationStatus.REQUESTED,
     userId,
     productId,
+    configuration,
     currency: Countries.resolveDefaultCurrencyCode({
-      isoCode: currencyCode,
+      isoCode: currencyCode
     }),
-    countryCode: currencyCode,
+    countryCode: currencyCode
   });
   const quotation = Quotations.findOne({ _id: quotationId });
-  return quotation.process();
+  return quotation.process().sendStatusToCustomer(options);
 };
 
 Quotations.updateContext = ({ context, quotationId }) => {
   log('Update Arbitrary Context', { quotationId });
-  Quotations.update({ _id: quotationId }, {
-    $set: {
-      context,
-      updated: new Date(),
-    },
-  });
+  Quotations.update(
+    { _id: quotationId },
+    {
+      $set: {
+        context,
+        updated: new Date()
+      }
+    }
+  );
   return Quotations.findOne({ _id: quotationId });
 };
 
-Quotations.updateProposal = ({
-  price, expires, meta, quotationId,
-}) => {
+Quotations.updateProposal = ({ price, expires, meta, quotationId }) => {
   log('Update Quotation with Proposal', { quotationId });
-  Quotations.update({ _id: quotationId }, {
-    $set: {
-      price,
-      expires,
-      meta,
-      updated: new Date(),
-    },
-  });
+  Quotations.update(
+    { _id: quotationId },
+    {
+      $set: {
+        price,
+        expires,
+        meta,
+        updated: new Date()
+      }
+    }
+  );
   return Quotations.findOne({ _id: quotationId });
 };
 
 Quotations.newQuotationNumber = () => {
   let quotationNumber = null;
-  const hashids = new Hashids('unchained', 6, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');
+  const hashids = new Hashids(
+    'unchained',
+    6,
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+  );
   while (!quotationNumber) {
     const randomNumber = Math.floor(Math.random() * (999999999 - 1)) + 1;
     const newHashID = hashids.encode(randomNumber);
-    if (Quotations.find({ quotationNumber: newHashID }, { limit: 1 }).count() === 0) {
+    if (
+      Quotations.find({ quotationNumber: newHashID }, { limit: 1 }).count() ===
+      0
+    ) {
       quotationNumber = newHashID;
     }
   }
@@ -280,9 +306,9 @@ Quotations.updateStatus = ({ status, quotationId, info = '' }) => {
       log: {
         date,
         status,
-        info,
-      },
-    },
+        info
+      }
+    }
   };
   switch (status) {
     // explicitly use fallthrough here!
@@ -290,12 +316,16 @@ Quotations.updateStatus = ({ status, quotationId, info = '' }) => {
       if (!quotation.fullfilled) {
         modifier.$set.fullfilled = date;
       }
+      modifier.$set.expires = new Date();
     case QuotationStatus.PROPOSED: // eslint-disable-line no-fallthrough
       isShouldUpdateDocuments = true;
     case QuotationStatus.PROCESSING: // eslint-disable-line no-fallthrough
       if (!quotation.quotationNumber) {
         modifier.$set.quotationNumber = Quotations.newQuotationNumber();
       }
+      break;
+    case QuotationStatus.REJECTED:
+      modifier.$set.expires = new Date();
       break;
     default:
       break;
@@ -309,7 +339,7 @@ Quotations.updateStatus = ({ status, quotationId, info = '' }) => {
       QuotationDocuments.updateDocuments({
         quotationId,
         date,
-        ...modifier.$set,
+        ...modifier.$set
       });
     } catch (e) {
       log(e, { level: 'error' });

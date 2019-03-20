@@ -1,6 +1,12 @@
-import { DeliveryAdapter, DeliveryDirector } from 'meteor/unchained:core-delivery';
+import {
+  DeliveryAdapter,
+  DeliveryDirector
+} from 'meteor/unchained:core-delivery';
 
-import { MessagingDirector, MessagingType } from 'meteor/unchained:core-messaging';
+import {
+  MessagingDirector,
+  MessagingType
+} from 'meteor/unchained:core-messaging';
 
 class SendMail extends DeliveryAdapter {
   static key = 'shop.unchained.send-mail';
@@ -12,7 +18,7 @@ class SendMail extends DeliveryAdapter {
   static initialConfiguration = [
     { key: 'from', value: '' },
     { key: 'to', value: '' },
-    { key: 'cc', value: '' },
+    { key: 'cc', value: '' }
   ];
 
   static typeSupported(type) {
@@ -24,8 +30,7 @@ class SendMail extends DeliveryAdapter {
     return true;
   }
 
-  async estimatedDeliveryThroughput() {
-    // eslint-disable-line
+  async estimatedDeliveryThroughput(warehousingThroughputTime) { // eslint-disable-line
     return 0;
   }
 
@@ -55,8 +60,8 @@ class SendMail extends DeliveryAdapter {
     return null;
   }
 
-  async send() {
-    const { delivery, order } = this.context;
+  async send(transactionContext) {
+    const { order } = this.context;
     const attachments = [];
     const deliveryNote = order.document({ type: 'DELIVERY_NOTE' });
     if (deliveryNote) attachments.push(deliveryNote);
@@ -70,10 +75,10 @@ class SendMail extends DeliveryAdapter {
 
     const director = new MessagingDirector({
       ...this.context,
-      type: MessagingType.EMAIL,
+      type: MessagingType.EMAIL
     });
 
-    const items = order.items().map((position) => {
+    const items = order.items().map(position => {
       const product = position.product();
       const texts = product.getLocalizedTexts();
       const pricing = position.pricing();
@@ -82,7 +87,7 @@ class SendMail extends DeliveryAdapter {
         sku: product.warehousing && product.warehousing.sku,
         name: texts.title,
         price: unitPrice / 100,
-        quantity: position.quantity,
+        quantity: position.quantity
       };
     });
 
@@ -94,12 +99,12 @@ class SendMail extends DeliveryAdapter {
         from: this.getFromAddress(),
         to: this.getToAddress(),
         cc: this.getCCAddress(),
-        ...((delivery && delivery.address) || {}),
+        ...((transactionContext && transactionContext.address) || {}),
+        items
         contact: order.contact || {},
-        items,
         total: order.pricing().total().amount / 100,
         deliveryContext: this.context,
-      },
+      }
     });
   }
 }

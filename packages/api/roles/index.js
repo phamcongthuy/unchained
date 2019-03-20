@@ -7,7 +7,7 @@ import admin from './admin';
 const roles = {
   ADMIN: Roles.adminRole,
   LOGGEDIN: Roles.loggedInRole,
-  ALL: Roles.allRole,
+  ALL: Roles.allRole
 };
 
 export default roles;
@@ -15,6 +15,7 @@ export default roles;
 export const actions = [
   'viewUserRoles',
   'viewUserOrders',
+  'viewUserQuotations',
   'viewUserPublicInfos',
   'viewUserPrivateInfos',
   'viewLogs',
@@ -70,6 +71,10 @@ export const actions = [
   'updateProductReview',
   'manageProductReviews',
   'requestQuotation',
+  'viewQuotations',
+  'viewQuotation',
+  'manageQuotations',
+  'answerQuotation'
 ].reduce((oldValue, actionValue) => {
   const newValue = oldValue;
   newValue[actionValue] = actionValue;
@@ -82,8 +87,8 @@ export const configureRoles = () => {
   admin(roles.ADMIN, actions);
 };
 
-export const checkPermission = (userId, action, ...args) => Roles
-  .userHasPermission(userId, action, ...args);
+export const checkPermission = (userId, action, ...args) =>
+  Roles.userHasPermission(userId, action, ...args);
 
-export const updateUserRole = (userId, roleName) => Roles
-  .addUserToRoles(userId, roles[roleName].name);
+export const updateUserRole = (userId, roleName) =>
+  Roles.addUserToRoles(userId, roles[roleName].name);
