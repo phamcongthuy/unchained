@@ -73,7 +73,7 @@ export default compose(
   }),
   graphql(gql`
     query productBundleItems($productId: ID) {
-      products {
+      products(limit: 1000000000) {
         _id
         texts {
           _id

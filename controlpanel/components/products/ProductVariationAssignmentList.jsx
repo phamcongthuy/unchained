@@ -84,7 +84,7 @@ const matrixGenerator = (columns, rowContainer, currentIndex) => {
 export default compose(
   graphql(gql`
     query productVariationAssignments($productId: ID) {
-      products {
+      products(limit: 1000000000) {
         _id
         texts {
           _id
