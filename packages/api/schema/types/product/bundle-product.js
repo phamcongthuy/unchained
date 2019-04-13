@@ -14,8 +14,8 @@ export default [
       media(vectors: [ProductAssignmentVectorInput!]): [ProductMedia!]
       texts(forceLocale: String): ProductTexts
       bundleItems: [ProductBundleItem!]
-      reviews(limit: Int, offset: Int): [ProductReview!]!
       meta: JSON
+      reviews(limit: Int = 10, offset: Int = 0): [ProductReview!]!
     }
 
     type ProductBundleItem {
