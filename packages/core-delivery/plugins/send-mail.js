@@ -66,7 +66,9 @@ class SendMail extends DeliveryAdapter {
     const attachments = [];
     const deliveryNote = order.document({ type: 'DELIVERY_NOTE' });
     if (deliveryNote) attachments.push(deliveryNote);
-    if (order.payment().isBlockingOrderFullfillment()) {
+    const payment = order.payment();
+    const paymentProvider = payment.provider();
+    if (payment.isBlockingOrderFullfillment()) {
       const invoice = order.document({ type: 'INVOICE' });
       if (invoice) attachments.push(invoice);
     } else {
@@ -85,6 +87,7 @@ class SendMail extends DeliveryAdapter {
       const productTexts = product.getLocalizedTexts();
       const originalProductTexts = originalProduct.getLocalizedTexts();
       const pricing = position.pricing();
+
       const unitPrice = pricing.unitPrice().amount;
       return {
         sku: product.warehousing && product.warehousing.sku,
@@ -107,7 +110,8 @@ class SendMail extends DeliveryAdapter {
         ...((transactionContext && transactionContext.address) || {}),
         items,
         contact: order.contact || {},
-        total: order.pricing().total().amount / 100
+        total: order.pricing().total().amount / 100,
+        paymentProvider
       }
     });
   }

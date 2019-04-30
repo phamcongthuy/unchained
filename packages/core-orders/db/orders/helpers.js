@@ -325,6 +325,7 @@ Orders.helpers({
       const fixedPrice = price / 100;
       return `${this.currency} ${fixedPrice}`;
     };
+    const paymentProvider = this.payment().provider();
     director.sendMessage({
       template: 'shop.unchained.orders.confirmation',
       attachments,
@@ -334,6 +335,7 @@ Orders.helpers({
         to: this.contact.emailAddress,
         url: `${UI_ENDPOINT}/order?_id=${this._id}&otp=${this.orderNumber}`,
         summary: this.pricing().formattedSummary(format),
+        paymentProvider,
         positions: this.items().map(item => {
           const productTexts = item.product().getLocalizedTexts(language);
           const originalProductTexts = item
