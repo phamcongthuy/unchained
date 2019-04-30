@@ -16,12 +16,11 @@ import { ProductReviews } from '../product-reviews/collections';
 import { ProductStatus, ProductTypes } from './schema';
 
 Products.createProduct = (
-  { authorId, locale, title, type, ...rest },
+  { locale, title, type, ...rest },
   { autopublish = false } = {}
 ) => {
   const product = {
     created: new Date(),
-    authorId,
     type: ProductTypes[type],
     status: ProductStatus.DRAFT,
     sequence: Products.getNewSequence(),
@@ -207,7 +206,7 @@ Products.helpers({
     return Products.find({ _id: { $in: productIds } }).fetch();
   },
 
-  userDispatches({ deliveryProviderType, ...options }) {
+  userDispatches({ deliveryProviderType, ...options }, requestContext) {
     const deliveryProviders = DeliveryProviders.findProviders({
       type: deliveryProviderType
     });
@@ -223,6 +222,7 @@ Products.helpers({
               warehousingProvider,
               deliveryProvider,
               product: this,
+              requestContext,
               ...options
             };
             const dispatch = warehousingProvider.estimatedDispatch(context);
@@ -236,7 +236,7 @@ Products.helpers({
     );
   },
 
-  userStocks({ deliveryProviderType, ...options }) {
+  userStocks({ deliveryProviderType, ...options }, requestContext) {
     const deliveryProviders = DeliveryProviders.findProviders({
       type: deliveryProviderType
     });
@@ -252,6 +252,7 @@ Products.helpers({
               warehousingProvider,
               deliveryProvider,
               product: this,
+              requestContext,
               ...options
             };
             const stock = warehousingProvider.estimatedStock(context);
@@ -265,12 +266,12 @@ Products.helpers({
     );
   },
 
-  userDiscounts(/* { quantity, country, userId } */) {
+  userDiscounts(/* { quantity, country, userId }, requestContext */) {
     // TODO: User Discount Simulation
     return [];
   },
 
-  userPrice({ quantity = 1, country, user, useNetPrice }) {
+  userPrice({ quantity = 1, country, user, useNetPrice }, requestContext) {
     const currency = Countries.resolveDefaultCurrencyCode({
       isoCode: country
     });
@@ -279,7 +280,8 @@ Products.helpers({
       user,
       country,
       currency,
-      quantity
+      quantity,
+      requestContext
     });
     const calculated = pricingDirector.calculate();
     if (!calculated) return null;

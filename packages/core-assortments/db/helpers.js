@@ -18,15 +18,17 @@ Collections.Assortments.createAssortment = ({
   isBase = false,
   isActive = true,
   isRoot = false,
-  meta = {}
+  meta = {},
+  ...rest
 }) => {
   const assortment = {
     created: new Date(),
+    sequence: Collections.Assortments.getNewSequence(),
     isBase,
     isActive,
     isRoot,
-    sequence: Collections.Assortments.getNewSequence(),
-    meta
+    meta,
+    ...rest
   };
   const assortmentId = Collections.Assortments.insert(assortment);
   const assortmentObject = Collections.Assortments.findOne({
@@ -541,16 +543,11 @@ Collections.Assortments.helpers({
 
     const filteredPipeline = [
       {
-        $match: selector
+        $match: filteredSelector
       },
       {
         $addFields: {
           index: { $indexOfArray: [filteredProductIds, '$_id'] }
-        }
-      },
-      {
-        $match: {
-          index: { $ne: -1 }
         }
       },
       {
